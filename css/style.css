@@ -395,3 +395,36 @@ html.motion .pframe.agitated .pose { filter: url(#agitate); }
 .w { display: inline-block; }
 /* full-lime scenes keep their colour when the scene layer would otherwise paint paper */
 .scene.lime, html.motion .scene.lime { background-color: var(--lime); }
+
+/* ---------- round 7 ---------- */
+/* the prompt: "Scroll" under the title; small arrows at chapter ends */
+.prompt { position: fixed; left: 50%; bottom: calc(26px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 45;
+  background: none; border: 0; padding: 10px 14px; cursor: pointer; font: inherit; font-size: 13px; letter-spacing: .04em; color: var(--muted);
+  display: flex; flex-direction: column; align-items: center; gap: 9px; opacity: 0; transition: opacity .7s ease; pointer-events: none; }
+.prompt.is-on { opacity: 1; pointer-events: auto; }
+.prompt[hidden] { display: none; }
+.prompt-mark { display: block; }
+.prompt.is-scroll .prompt-mark { width: 1px; height: 30px; background: var(--lime); transform-origin: 50% 0; animation: prompt-line 2.4s ease-in-out infinite; }
+@keyframes prompt-line { 0%, 100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
+.prompt.is-next .prompt-mark, .prompt.is-top .prompt-mark { width: 11px; height: 11px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; }
+.prompt.is-next .prompt-mark { transform: rotate(45deg); }
+.prompt.is-top .prompt-mark { transform: rotate(-135deg); margin-top: 6px; }
+.prompt:hover { color: var(--ink); }
+.prompt.on-dark { color: rgba(255,255,255,.7); }
+.prompt.on-dark:hover { color: #fff; }
+@media (prefers-reduced-motion: reduce) { .prompt { display: none !important; } }
+/* the cover's prompt sits on the cover image */
+/* counting: the atoms line on black */
+.k-black { display: none; }
+html.stage-mode .k-black { display: block; position: absolute; inset: 0; background: var(--black); pointer-events: none; }
+html.stage-mode .counting .k1 { position: relative; }
+/* phones: the chapter's last page as one black screen */
+.coda { display: none; }
+@media (max-width: 899px) {
+  html.motion .coda { display: flex; flex-direction: column; justify-content: center; gap: 1.2em; min-height: 100vh; min-height: 100svh;
+    background: var(--black); color: #fff; padding: 0 var(--gutter); position: relative; }
+  .coda .p-next { position: absolute; left: 50%; bottom: 40px; width: 12px; height: 12px; margin-left: -6px; border-right: 1px solid rgba(255,255,255,.7); border-bottom: 1px solid rgba(255,255,255,.7); transform: rotate(45deg); cursor: pointer; }
+  .coda .p-next::before { content: ""; position: absolute; inset: -14px; }
+  html.motion .counting .k1 { padding: 14vh var(--gutter); margin-inline: calc(-1 * var(--gutter)); }
+}
+/* "Bit by bit," keeps its width while its letters flicker */
