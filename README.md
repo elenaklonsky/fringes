@@ -1,6 +1,6 @@
 # Biological Abundance · Anthrogen (web edition)
 
-The scroll-driven web version of the Onto zine. So far it contains the cover and Section I, *Instruments of Abundance*, and ends on the Section II opener.
+The scroll-driven web version of the Onto zine. It contains the whole zine: the cover, Section I *Instruments of Abundance*, Section II *The Fringes of Reason*, Section III *History of the Future*, and the colophon.
 
 ## Put it online with GitHub Pages
 
@@ -19,7 +19,7 @@ To update the site later, upload the changed files the same way. They replace th
 | `css/style.css` | Layout, type and colours. The colours sit at the top, under `:root` |
 | `js/main.js` | The scroll scenes (GSAP ScrollTrigger, loaded from cdnjs) |
 | `fonts/` | FK Roman Standard, Regular and Oblique |
-| `assets/` | The cover and the Section I images (WebP) |
+| `assets/` | The cover and every image in the zine (WebP) |
 
 ## How it behaves
 

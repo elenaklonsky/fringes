@@ -67,10 +67,76 @@
     nav.classList.toggle('is-visible', visible);
     if (!visible) setOpen(false);
   }
-  function onScroll() { updateProgress(); if (!stageMode) updateFlowNav(); }
+  var lastGrainY = -999;
+  function shuffleGrain() {   // living grain: a new grain pattern every ~28px of scroll; perfectly still when you stop
+    if (reduce || Math.abs(scrollY - lastGrainY) < 28) return;
+    lastGrainY = scrollY;
+    root.style.setProperty('--gx', Math.round(Math.random() * 220) + 'px');
+    root.style.setProperty('--gy', Math.round(Math.random() * 220) + 'px');
+  }
+  function onScroll() { updateProgress(); shuffleGrain(); if (!stageMode) updateFlowNav(); }
   addEventListener('scroll', onScroll, { passive: true });
   addEventListener('resize', onScroll);
   onScroll();
+
+  /* ---------------- pp. 30–31: the hairline arrows ----------------
+     Drawn from where the text blocks really sit (screen type is larger than print, so lines can wrap
+     differently); each route copies the printed one: down, across, up, into the next block. */
+  function offBox(el, stop) {
+    var x = 0, y = 0, n = el;
+    while (n && n !== stop) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
+    return { l: x, t: y, r: x + el.offsetWidth, b: y + el.offsetHeight };
+  }
+  function lineBoxes(el, box) {   // first and last line of a block, in the same coordinates as box
+    var rg = document.createRange(); rg.selectNodeContents(el);
+    var er = el.getBoundingClientRect(), rows = [];
+    Array.prototype.forEach.call(rg.getClientRects(), function (c) {
+      if (c.width < 1) return;
+      var top = c.top - er.top, row = null;
+      rows.forEach(function (w) { if (Math.abs(w.t - top) < c.height * 0.5) row = w; });
+      if (!row) rows.push({ t: top, b: c.bottom - er.top, l: c.left - er.left, r: c.right - er.left });
+      else { row.l = Math.min(row.l, c.left - er.left); row.r = Math.max(row.r, c.right - er.left); row.b = Math.max(row.b, c.bottom - er.top); }
+    });
+    rows.sort(function (a, b) { return a.t - b.t; });
+    var abs = function (w) { return { l: box.l + w.l, r: box.l + w.r, t: box.t + w.t, b: box.t + w.b, mid: box.t + (w.t + w.b) / 2 }; };
+    return { fl: abs(rows[0]), ll: abs(rows[rows.length - 1]) };
+  }
+  function drawConnectors() {
+    var layer = document.getElementById('s30');
+    if (!layer || innerWidth < 900) return;
+    var svg = layer.querySelector('.connectors svg'), sp = layer.querySelector('.spread');
+    var S0 = offBox(sp, layer), k = sp.offsetWidth / 708.66, xg = S0.l + 384.2 * k;   // xg: the inner margin of the right-hand page
+    var fb = [];
+    for (var i = 0; i < 10; i++) {
+      var el = layer.querySelector('.fb' + i), b = offBox(el, layer), ln = lineBoxes(el, b);
+      b.fl = ln.fl; b.ll = ln.ll; b.mid = (b.t + b.b) / 2; fb.push(b);
+    }
+    var clampIn = function (x, T) { return Math.min(x, T.r - 10 * k); };
+    var R = [
+      function (S, T) { var x = S.l + 13 * k; return [[x, S.b + 3 * k], [x, T.mid], [T.l - 8.7 * k, T.mid]]; },
+      function (S, T) { var x = S.l + 10.2 * k; return [[x, S.b + 6 * k], [x, T.mid], [T.l - 11.5 * k, T.mid]]; },
+      function (S, T) { var x0 = Math.min(S.ll.r + 12 * k, xg - 8 * k), y = S.ll.mid; return [[x0, y], [xg, y], [xg, T.mid], [T.l - 5 * k, T.mid]]; },
+      function (S, T) { var y = S.fl.mid, xc = clampIn(S.fl.r + 33.7 * k, T); return [[S.fl.r + 10.7 * k, y], [xc, y], [xc, T.t - 6 * k]]; },
+      function (S, T) { var x0 = Math.min(S.l + 161.3 * k, S.r - 5 * k), ym = (S.b + T.t) / 2, x1 = T.l + 66.7 * k; return [[x0, S.b + 2 * k], [x0, ym], [x1, ym], [x1, T.t - 7 * k]]; },
+      function (S, T) { var y = S.fl.b, xc = clampIn(S.fl.r + 52.2 * k, T); return [[S.fl.r + 6.5 * k, y], [xc, y], [xc, T.t - 9 * k]]; },
+      function (S, T) { var x = S.l + 102.4 * k; return [[x, S.b + 12 * k], [x, T.t - 7 * k]]; },
+      function (S, T) { var y = S.fl.mid + 3 * k, yu = T.t - 36 * k, x2 = T.l + 114.3 * k; return [[S.fl.r + 13.7 * k, y], [xg, y], [xg, yu], [x2, yu], [x2, T.t - 8 * k]]; },
+      function (S, T) { var x = S.l + 5.4 * k, y = T.fl.b; return [[x, S.b + 8 * k], [x, y], [T.l - 16.3 * k, y]]; }
+    ];
+    R.forEach(function (fn, n) {
+      var pts = fn(fb[n], fb[n + 1]);
+      svg.querySelector('[data-cn="' + n + '"]').setAttribute('d', 'M' + pts.map(function (p) { return p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' L'));
+      var a = pts[pts.length - 2], e = pts[pts.length - 1], dx = e[0] - a[0], dy = e[1] - a[1], len = Math.sqrt(dx * dx + dy * dy) || 1;
+      dx /= len; dy /= len;
+      var hl = 3.2 * k, hw = 3 * k, bx = e[0] - dx * hl, by = e[1] - dy * hl;
+      svg.querySelector('[data-head="' + n + '"]').setAttribute('d', 'M' + (bx - dy * hw).toFixed(1) + ' ' + (by + dx * hw).toFixed(1) +
+        ' L' + e[0].toFixed(1) + ' ' + e[1].toFixed(1) + ' L' + (bx + dy * hw).toFixed(1) + ' ' + (by - dx * hw).toFixed(1));
+    });
+  }
+  drawConnectors();
+  addEventListener('resize', drawConnectors);
+  addEventListener('load', drawConnectors);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawConnectors);
 
   if (!hasGsap || reduce) return;   // still page, everything already visible
 
@@ -119,6 +185,22 @@
     });
     gsap.set(words, { autoAlpha: 0, y: 6 });
     return words;
+  }
+  // the same, for text that keeps its italics: each word becomes its own span
+  function unfurlWords(el) {
+    if (el._words) return el._words;
+    var out = [], nodes = [], walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(function (n) {
+      var frag = document.createDocumentFragment();
+      n.textContent.split(/(\s+)/).forEach(function (p) {
+        if (!p) return;
+        if (/^\s+$/.test(p)) { frag.appendChild(document.createTextNode(p)); return; }
+        var s = document.createElement('span'); s.className = 'w'; s.textContent = p; frag.appendChild(s); out.push(s);
+      });
+      n.parentNode.replaceChild(frag, n);
+    });
+    el._words = out; return out;
   }
   // an element's resting box inside a container, ignoring any transforms GSAP has applied
   function restBox(el, stop) {
@@ -252,8 +334,8 @@
       var el = items[idx], d = DEPTH[idx];
       tl.fromTo(el,
         { y: function () { return innerHeight * (0.8 + 0.25 * (1 - d) / 2); }, z: -420 + d * 300, rotationX: 48 - d * 12, rotationY: d * 9,
-          transformPerspective: 1100, transformOrigin: '50% 100%', autoAlpha: 0 },
-        { y: 0, z: 0, rotationX: 0, rotationY: 0, autoAlpha: 1, duration: 0.9 - d * 0.12, ease: 'power3.out', immediateRender: false },
+          transformPerspective: 1100, transformOrigin: '50% 100%', autoAlpha: 0, filter: 'blur(' + (1 + (1 - d) * 2.5).toFixed(1) + 'px)' },
+        { y: 0, z: 0, rotationX: 0, rotationY: 0, autoAlpha: 1, filter: 'blur(0px)', duration: 0.9 - d * 0.12, ease: 'power3.out', immediateRender: false },   // far ones come into focus as they settle
         10.7 + k * 0.1);
     });
     fadeIn(tinker, 12.55, 0.45);
@@ -355,7 +437,7 @@
                       duration: 0.9, ease: 'power2.inOut', immediateRender: false }, 35.75);
     fadeOut([b1, b2], 35.75, 0.6);
     beat('question', 36.7, 1.1);                  // alone on the paper
-    var o2 = L['opener-2'], o2text = qa('.col-r > *', o2);
+    var o2 = L['opener-2'], o2text = qa('.col-r > *', o2);   // (II continues below)
     gsap.set(o2, { autoAlpha: 0 }); gsap.set(o2text, { autoAlpha: 0 });
     fadeOut(qBig, 37.8, 0.35);
     show(o2, 37.95);
@@ -364,8 +446,176 @@
     hide(Q, 38.6);
     mark(38.1, 'II. The Fringes of Reason', true);
     beat('opener2', 38.9, 1.0);
-    var TOTAL = 40.1;
-    tl.to({}, { duration: 0.2 }, TOTAL - 0.2);
+
+    /* =====================================================================
+       II and III. Every spread is built from its data-step / data-move marks
+       (see tools/sections23.py): things arrive in order, the spread holds, then it all departs
+       upward while the next one rises in. Only the chapter changes and endings are written by hand.
+       ===================================================================== */
+    ['s20', 's22', 's24', 's26', 's28', 's30', 's32', 's34', 's36', 'opener-3', 's40', 's42', 's44', 's46', 'colophon']
+      .forEach(function (id) { L[id] = document.getElementById(id); gsap.set(L[id], { visibility: 'hidden' }); });
+    var stepped = function (layer) { return qa('[data-step]', layer); };
+    function leavers(layer) {
+      return stepped(layer).filter(function (el) {
+        if (el.closest('svg')) return false;
+        var p = el.parentElement.closest('[data-step]');
+        return !p || !layer.contains(p);
+      }).concat(qa('[data-leave]', layer));
+    }
+    function animIn(el, at) {
+      var mv = el.getAttribute('data-move') || 'arrive';
+      if (mv === 'arrive') {
+        tl.fromTo(el, { y: function () { return innerHeight * 0.5; }, autoAlpha: 0 },
+          { y: 0, autoAlpha: 1, duration: 0.7, ease: el.tagName === 'IMG' ? 'back.out(0.8)' : 'power3.out', immediateRender: false }, at);   // images settle with the faintest give
+        return 0.7;
+      }
+      if (mv === 'depth') {
+        var d = parseFloat(el.getAttribute('data-depth')) || 0;
+        tl.fromTo(el,
+          { y: function () { return innerHeight * (0.8 + 0.25 * (1 - d) / 2); }, z: -420 + d * 300, rotationX: 48 - d * 12, rotationY: d * 9,
+            transformPerspective: 1100, transformOrigin: '50% 100%', autoAlpha: 0, filter: 'blur(' + (1 + (1 - d) * 2.5).toFixed(1) + 'px)' },
+          { y: 0, z: 0, rotationX: 0, rotationY: 0, autoAlpha: 1, filter: 'blur(0px)', duration: 0.9 - d * 0.12, ease: 'power3.out', immediateRender: false }, at);
+        return 0.9 - d * 0.12;
+      }
+      if (mv === 'fade') { fadeIn(el, at, 0.45); return 0.45; }
+      if (mv === 'rise') {   // a whole panel of colour comes up from below
+        tl.fromTo(el, { y: function () { return innerHeight * 1.02; }, autoAlpha: 1 }, { y: 0, duration: 0.9, ease: 'power3.out', immediateRender: false }, at);
+        return 0.9;
+      }
+      if (mv === 'unfurl' || mv === 'lines') {
+        var ws = mv === 'lines' ? qa('.ln', el) : unfurlWords(el), gap = mv === 'lines' ? 0.3 : 0.07;
+        gsap.set(ws, { autoAlpha: 0, y: 6 });
+        tl.set(el, { autoAlpha: 1 }, at).to(ws, { autoAlpha: 1, y: 0, duration: 0.2, ease: 'power1.out', stagger: gap }, at);
+        return 0.2 + gap * (ws.length - 1);
+      }
+      if (mv === 'swell') {   // the lime bar opens out from the middle, then the question appears on it
+        var bar = q('.hl-bar', el), tx = q('.hl-text', el);
+        gsap.set(bar, { scaleX: 0 }); gsap.set(tx, { autoAlpha: 0 });
+        tl.set(el, { autoAlpha: 1 }, at).to(bar, { scaleX: 1, duration: 0.5, ease: 'power2.out' }, at).to(tx, { autoAlpha: 1, duration: 0.35 }, at + 0.25);
+        return 0.6;
+      }
+      if (mv === 'draw') {   // an arrow draws itself from one block to the next
+        var head = q('[data-head="' + el.getAttribute('data-cn') + '"]', el.ownerSVGElement);
+        gsap.set(head, { autoAlpha: 0 });
+        tl.fromTo(el, { autoAlpha: 1, strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.5, ease: 'power1.inOut', immediateRender: false }, at)
+          .to(head, { autoAlpha: 1, duration: 0.08 }, at + 0.47);
+        return 0.55;
+      }
+      if (mv === 'eswap') {   // "int-e-rchang-e-able": the two loose e's trade places, then sit exactly as printed
+        tl.fromTo(el, { y: function () { return innerHeight * 0.5; }, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7, ease: 'power3.out', immediateRender: false }, at);
+        var e1 = q('.ex1', el), e2 = q('.ex2', el);
+        var dx = function () { return e2.offsetLeft - e1.offsetLeft; }, lift = function () { return parseFloat(getComputedStyle(el).fontSize) * 0.55; };
+        tl.to(e1, { x: function () { return dx() / 2; }, y: function () { return -lift(); }, duration: 0.35, ease: 'power1.out' }, at + 0.85)
+          .to(e1, { x: dx, y: 0, duration: 0.35, ease: 'power1.in' }, at + 1.2)
+          .to(e2, { x: function () { return -dx() / 2; }, y: lift, duration: 0.35, ease: 'power1.out' }, at + 0.85)
+          .to(e2, { x: function () { return -dx(); }, y: 0, duration: 0.35, ease: 'power1.in' }, at + 1.2);
+        return 1.55;
+      }
+      return 0;
+    }
+    function runScene(id, t0) {   // returns the time the spread's final hold ends
+      var layer = L[id], els = stepped(layer), steps = {};
+      gsap.set(els, { autoAlpha: 0 });
+      els.forEach(function (el) { var s = el.getAttribute('data-step'); (steps[s] = steps[s] || []).push(el); });
+      var t = t0, end = t0;
+      Object.keys(steps).sort(function (a, b) { return a - b; }).forEach(function (key) {
+        var dur = 0, hold = 0, gap = null;
+        steps[key].forEach(function (el) {
+          dur = Math.max(dur, animIn(el, t));
+          hold = Math.max(hold, parseFloat(el.getAttribute('data-hold')) || 0);
+          var g = el.getAttribute('data-gap'); if (g !== null) gap = gap === null ? +g : Math.min(gap, +g);
+        });
+        end = Math.max(end, t + dur);
+        if (hold) { beat(id + '-' + key, t + dur, hold); t = t + dur + hold + 0.05; end = Math.max(end, t); }
+        else t += gap !== null ? gap : Math.min(dur, 0.4);
+      });
+      var fin = parseFloat(layer.getAttribute('data-final')) || 1;
+      beat(id, end, fin);
+      return end + fin;
+    }
+    function leave(id, T) {   // the spread carries on upward; nearer things faster, far ones lag
+      leavers(L[id]).forEach(function (el, i) {
+        if (el.classList.contains('bleed')) { tl.to(el, { y: function () { return -innerHeight * 1.05; }, duration: 0.9, ease: 'power2.in' }, T); return; }
+        var d = parseFloat(el.getAttribute('data-depth')), deep = !isNaN(d);
+        tl.to(el, { y: function () { var r = restBox(el, stage); return '-=' + (r.top + r.height + 100); }, z: deep ? d * 160 : 0,
+                    duration: deep ? 1.05 - d * 0.3 : 0.75 + (i % 3) * 0.08, ease: 'power1.in' }, T + (deep ? (1 - d) * 0.08 : 0));
+      });
+    }
+    function move(prev, next, T) {
+      leave(prev, T);
+      show(L[next], T + 0.25);
+      hide(L[prev], T + 1.45);
+      return runScene(next, T + 0.65);   // the new spread rises in once the old one has mostly cleared
+    }
+    function toCentre(el, at, d) {   // the chapter's last line moves to the middle of the screen at its own size
+      tl.to(el, { x: function () { var r = restBox(el, stage); return innerWidth / 2 - (r.left + r.width / 2); },
+                  y: function () { var r = restBox(el, stage); return innerHeight / 2 - (r.top + r.height / 2); },
+                  duration: d || 0.9, ease: 'power2.inOut' }, at);
+    }
+
+    /* II · back up to paper */
+    var t = 39.9;
+    fadeOut(o2text, t, 0.3);
+    tl.to(o2, { autoAlpha: 0, duration: 0.5 }, t + 0.2);
+    show(L.s20, t + 0.3);
+    hide(o2, t + 0.75);
+    mark(t + 0.35, 'II. The Fringes of Reason', false);
+    t = runScene('s20', t + 0.5);
+    ['s22', 's24', 's26', 's28', 's30', 's32', 's34', 's36'].forEach(function (id, n, arr) { t = move(n ? arr[n - 1] : 's20', id, t); });
+
+    /* end of II: everything fades except the last line, which moves to the centre and holds alone;
+       the blank p. 38 is the pause; then black, and III */
+    var S36 = L.s36, last2 = q('.last-line', S36);
+    fadeOut(stepped(S36).filter(function (el) { return el !== last2 && !el.contains(last2); }), t, 0.6);
+    toCentre(last2, t);
+    beat('end2', t + 0.95, 1.3); t += 2.25;
+    var o3 = L['opener-3'], o3text = qa('.col-r > *', o3);
+    gsap.set(o3, { autoAlpha: 0 }); gsap.set(o3text, { autoAlpha: 0 });
+    fadeOut(last2, t, 0.35);
+    show(o3, t + 0.2);
+    tl.to(o3, { autoAlpha: 1, duration: 0.6 }, t + 0.2);
+    hide(S36, t + 0.85);
+    fadeIn(o3text, t + 0.75, 0.4);
+    var T3 = t + 0.3;
+    mark(T3, 'III. History of the Future', true);
+    beat('opener3', t + 1.15, 1.0); t += 2.15;
+
+    /* III · the black opens into full lime; the quote, clause by clause */
+    var Q4 = L.s40, q1 = q('.q1', Q4), q2 = q('.q2', Q4), attrib = q('.attrib', Q4);
+    gsap.set(Q4, { autoAlpha: 0 }); gsap.set([q1, q2, attrib], { autoAlpha: 0 });
+    fadeOut(o3text, t, 0.3);
+    show(Q4, t + 0.2);
+    tl.to(Q4, { autoAlpha: 1, duration: 0.7 }, t + 0.2);
+    hide(o3, t + 0.95);
+    mark(t + 0.5, 'III. History of the Future', false);
+    fadeIn(q1, t + 1.0, 0.5);
+    fadeIn(q2, t + 1.6, 0.6);
+    fadeIn(attrib, t + 2.35, 0.4);
+    beat('quote', t + 2.8, 1.6); t += 4.4;
+    tl.to(Q4, { autoAlpha: 0, duration: 0.6 }, t);   // back to paper
+    show(L.s42, t + 0.3);
+    hide(Q4, t + 0.65);
+    t = runScene('s42', t + 0.5);
+    t = move('s42', 's44', t);
+    t = move('s44', 's46', t);
+
+    /* the end: the page goes to black around the last line, which moves to the centre and holds */
+    var S46 = L.s46, last3 = q('.last-line', S46);
+    fadeOut(stepped(S46).filter(function (el) { return el !== last3 && !el.contains(last3); }), t, 0.7);
+    tl.fromTo(S46, { backgroundColor: 'rgba(17,14,12,0)' }, { backgroundColor: 'rgba(17,14,12,1)', duration: 0.7, immediateRender: false }, t);
+    toCentre(last3, t + 0.2);
+    mark(t + 0.4, 'III. History of the Future', true);
+    beat('end3', t + 1.15, 1.8); t += 2.95;
+
+    /* colophon, quietly, on paper */
+    tl.to(S46, { autoAlpha: 0, duration: 0.6 }, t);
+    show(L.colophon, t + 0.2);
+    hide(S46, t + 0.65);
+    mark(t + 0.3, 'III. History of the Future', false);
+    t = runScene('colophon', t + 0.5);
+
+    var TOTAL = t + 0.3;
+    tl.to({}, { duration: 0.3 }, TOTAL - 0.3);
 
     /* ---- connect the timeline to the scrollbar ---- */
     function sizeTrack() { track.style.height = ((TOTAL + 1) * innerHeight) + 'px'; }
@@ -373,18 +623,36 @@
     var st = ScrollTrigger.create({
       trigger: track, start: 'top top', end: 'bottom bottom', scrub: 0.7, animation: tl, invalidateOnRefresh: true,
       onUpdate: function (self) {
+        agitate(self.getVelocity(), self.progress * TOTAL);
         var t = self.progress * TOTAL, name = '', dark = false;
         navMarks.forEach(function (m) { if (t >= m[0]) { name = m[1]; dark = m[2]; } });
         setLabel(name); nav.classList.toggle('on-dark', dark);
         var visible = t > 1.0; nav.classList.toggle('is-visible', visible); if (!visible) setOpen(false);
         menu.querySelectorAll('a').forEach(function (a) {
           var id = a.getAttribute('href').slice(1);
-          var on = (id === 'cover' && t < 2.3) || (id === 'section-1' && t >= 2.3 && t < 38.1) || (id === 'section-2' && t >= 38.1);
+          var on = (id === 'cover' && t < 2.3) || (id === 'section-1' && t >= 2.3 && t < 38.1) || (id === 'section-2' && t >= 38.1 && t < T3) || (id === 'section-3' && t >= T3);
           a.setAttribute('aria-current', on ? 'true' : 'false');
         });
       }
     });
     var yFor = function (time) { return st.start + (time / TOTAL) * (st.end - st.start); };
+    if (/[?&]nosnap\b/.test(location.search)) window.__stage = { beats: beats, total: TOTAL, yFor: yFor };   // for frame-by-frame checks
+
+    /* ---- the protein breathes: its point cloud shimmers with scroll speed, and is still when you stop ---- */
+    var disp = document.querySelector('#agitate feDisplacementMap'), turb = document.querySelector('#agitate feTurbulence');
+    var agit = { s: 0 }, calm;
+    function agitate(v, t) {
+      if (t < 5.8 || t > 11) return;                       // only while the protein is on screen
+      var target = Math.min(7, Math.abs(v) / 260);
+      gsap.to(agit, { s: target, duration: 0.25, overwrite: true, onUpdate: function () {
+        disp.setAttribute('scale', agit.s.toFixed(2));
+        turb.setAttribute('seed', String(Math.round(t * 40) % 50));
+        frame.classList.toggle('agitated', agit.s > 0.15);
+      } });
+      clearTimeout(calm);
+      calm = setTimeout(function () { gsap.to(agit, { s: 0, duration: 0.6, overwrite: true, onUpdate: function () {
+        disp.setAttribute('scale', agit.s.toFixed(2)); frame.classList.toggle('agitated', agit.s > 0.15); } }); }, 120);
+    }
 
     /* ---- beats: if the reader stops between two spreads, ease on to the next one ---- */
     var idle, dir = 1, snapping = false;
@@ -408,7 +676,7 @@
     else addEventListener('scroll', function () { onMove(scrollY - lastY); lastY = scrollY; }, { passive: true });
 
     // menu links jump to their beat
-    jumpTo = function (id) { var name = { cover: 'cover', 'section-1': 'opener1', 'section-2': 'opener2' }[id]; scrollToY(yFor(tl.labels[name] + 0.05), 1.6); };
+    jumpTo = function (id) { var name = { cover: 'cover', 'section-1': 'opener1', 'section-2': 'opener2', 'section-3': 'opener3' }[id]; scrollToY(yFor(tl.labels[name] + 0.05), 1.6); };
 
     return function () {   // leaving desktop size: undo
       stageMode = false; jumpTo = null;
@@ -462,7 +730,7 @@
     // collage: the images float up in depth as their page arrives; the tinker line appears once they're in
     qa('#collage .page').forEach(function (pg) {
       qa('.c-item', pg).forEach(function (el, i) {
-        gsap.from(el, { y: 120 + (i % 3) * 40, rotationX: 40, transformPerspective: 900, transformOrigin: '50% 100%', autoAlpha: 0, ease: 'power2.out',
+        gsap.from(el, { y: 120 + (i % 3) * 40, rotationX: 40, transformPerspective: 900, transformOrigin: '50% 100%', autoAlpha: 0, filter: 'blur(3px)', ease: 'power2.out',
           scrollTrigger: { trigger: el, start: 'top 105%', end: 'top 55%', scrub: 0.6 } });
       });
     });
@@ -498,6 +766,34 @@
 
 
     })();
+
+    // II and III: the spreads become one column in arrival order; each piece rises or fades in as it reaches the screen
+    qa('.sp [data-step]').forEach(function (el) {
+      if (el.closest('svg')) return;
+      var mv = el.getAttribute('data-move') || 'arrive';
+      var st = { trigger: el, start: 'top 90%', end: 'top 60%', scrub: 0.5 };
+      if (mv === 'unfurl' || mv === 'lines') {
+        var ws = mv === 'lines' ? qa('.ln', el) : unfurlWords(el);
+        gsap.fromTo(ws, { autoAlpha: 0 }, { autoAlpha: 1, stagger: 0.1, ease: 'none', scrollTrigger: { trigger: el, start: 'top 85%', end: 'top 45%', scrub: 0.5 } });
+        return;
+      }
+      if (mv === 'swell') {
+        gsap.timeline({ scrollTrigger: st }).from(q('.hl-bar', el), { scaleX: 0, duration: 0.6 }).from(q('.hl-text', el), { autoAlpha: 0, duration: 0.4 }, 0.3);
+        return;
+      }
+      if (mv === 'eswap') {
+        var e1 = q('.ex1', el), e2 = q('.ex2', el), dx = function () { return e2.offsetLeft - e1.offsetLeft; };
+        gsap.timeline({ scrollTrigger: { trigger: el, start: 'top 85%', end: 'top 40%', scrub: 0.5, invalidateOnRefresh: true } })
+          .from(el, { autoAlpha: 0, y: 20, duration: 0.4 })
+          .to(e1, { keyframes: [{ x: function () { return dx() / 2; }, y: -9, duration: 0.3 }, { x: dx, y: 0, duration: 0.3 }] }, 0.5)
+          .to(e2, { keyframes: [{ x: function () { return -dx() / 2; }, y: 9, duration: 0.3 }, { x: function () { return -dx(); }, y: 0, duration: 0.3 }] }, 0.5);
+        return;
+      }
+      gsap.from(el, { autoAlpha: 0, y: mv === 'fade' ? 0 : 24, ease: 'power2.out', scrollTrigger: st });
+    });
+    qa('.m-arrow').forEach(function (el) {
+      gsap.from(el, { scaleY: 0, transformOrigin: '50% 0%', ease: 'none', scrollTrigger: { trigger: el, start: 'top 88%', end: 'top 70%', scrub: 0.5 } });
+    });
   });
 
   // fonts change text widths: re-measure once they have loaded

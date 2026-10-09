@@ -37,7 +37,7 @@ sup { font-size: .58em; line-height: 0; vertical-align: .62em; }
 img { display: block; max-width: 100%; height: auto; }
 
 /* paper grain over everything (fine noise, like uncoated stock); sits under the navigation */
-body::after { content: ""; position: fixed; inset: -50%; z-index: 40; pointer-events: none; opacity: var(--grain, .22); mix-blend-mode: multiply;
+body::after { content: ""; position: fixed; inset: -50%; z-index: 40; pointer-events: none; opacity: var(--grain, .22); background-position: var(--gx, 0px) var(--gy, 0px); mix-blend-mode: multiply;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .14  0 0 0 0 .12  0 0 0 0 .1  0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 220px 220px; }
 /* engravings and scans printed on white paper sit into the page instead of showing white boxes */
@@ -324,3 +324,74 @@ html.motion .question-big { display: block; position: absolute; left: 0; top: 0;
 .cover-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 @media (prefers-reduced-motion: reduce) { .cover-video { display: none; } }
 .cover-title .ch { display: inline; }
+
+/* the protein agitates with scroll speed (switched on by script only while moving) */
+html.motion .pframe.agitated .pose { filter: url(#agitate); }
+
+/* =========================================================================
+   SECTIONS II AND III · spreads built at their printed positions
+   (tools/sections23.py writes the positions; js/main.js moves them)
+   ========================================================================= */
+.sp { position: relative; padding-block: 8vh; }
+.sp .page > .pos, .panel > .pos { position: absolute; left: var(--x); top: var(--y); width: var(--w); }
+.sp .im { mix-blend-mode: multiply; }
+.panel { height: var(--h); }
+.panel.black { background: var(--black); }
+.lime { background-color: var(--lime); }
+.tg { z-index: 2; line-height: 1.36; }
+.tb { margin-left: var(--bx); width: min(var(--bw), calc(100% - var(--bx) - 2.5%)); }
+.tb.tc { text-align: center; width: auto; margin-left: 3%; margin-right: 3%; }
+.on-colour { color: #fff; }
+/* p. 28: the question on its lime bar */
+.tb.hl { width: fit-content; margin-left: auto; margin-right: auto; padding: .04em .55em; position: relative; isolation: isolate; }
+.hl-bar { position: absolute; inset: 0; background: var(--lime); z-index: -1; }
+.hl-text { position: relative; }
+/* p. 23: the lime runs from the gutter to the edge of the screen */
+.bleed { position: absolute; top: 0; bottom: 0; }
+.bleed-r { left: 50%; right: 0; }
+/* pp. 30–31: hairline arrows, drawn by script from the blocks' real positions */
+.connectors { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+.connectors svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.cn, .cn-head { fill: none; stroke: var(--ink); stroke-width: 1px; stroke-linecap: square; }
+.cn { stroke-dasharray: 1; stroke-dashoffset: 0; }
+.m-arrow { display: none; }
+/* p. 43 */
+.ex { display: inline-block; }
+/* pp. 40–41 */
+.quote-scene { min-height: 100vh; min-height: 100svh; }
+.quote .q1, .quote .q2 { display: inline; }
+.colophon { padding-bottom: 30vh; }
+
+@media (min-width: 900px) {
+  html.motion .sp { height: 100vh; display: flex; align-items: center; padding: 0; }
+  html.stage-mode .quote-scene.layer { background-color: var(--lime); }
+}
+
+@media (max-width: 899px) {
+  .sp { padding-block: 6vh; }
+  .sp .spread { display: flex; flex-direction: column; align-items: flex-start; }
+  .sp .page { display: contents; }
+  .sp .page > .pos { position: relative; left: auto; top: auto; }
+  .sp .page > .im { width: var(--w); margin-left: var(--x); margin-top: 5vh; }
+  .sp .page > .tg { width: 100%; margin-top: 4vh; }
+  .sp .page > .tg:first-child { margin-top: 0; }
+  .sp .page > .tg .tb { margin-left: calc(var(--bx) * .35); width: auto; }
+  .sp .page > .tg .tb.tc { margin-left: 0; }
+  .sp .page > .tg .tb.hl { margin-left: auto; width: fit-content; }
+  .sp .page > .panel { width: 100%; height: auto; aspect-ratio: var(--ar); margin-top: 5vh; }
+  .panel .tb { font-size: 15px; }
+  .bleed { display: none; }
+  .lime-page > .tg { background: var(--lime); padding: 28vh var(--gutter); margin-inline: calc(-1 * var(--gutter)); width: calc(100% + 2 * var(--gutter)) !important; }
+  .quote-scene .tg { padding: 24vh 0; }
+  .quote-scene .tb { margin-left: 0 !important; width: auto !important; }
+  .connectors { display: none; }
+  .m-arrow { display: block; position: relative; width: 1px; height: 30px; background: var(--ink); margin: 14px 0 0 1.2em; }
+  .m-arrow::after { content: ""; position: absolute; left: -3px; bottom: 0; width: 6px; height: 6px; border-right: 1px solid var(--ink); border-bottom: 1px solid var(--ink); transform: rotate(45deg); transform-origin: 50% 50%; }
+  .flow .page > .tg { margin-top: 14px; }
+  .flow .page > .tg .tb { margin-left: 0; }
+}
+
+/* words that unfurl can rise a few pixels into place */
+.w { display: inline-block; }
+/* full-lime scenes keep their colour when the scene layer would otherwise paint paper */
+.scene.lime, html.motion .scene.lime { background-color: var(--lime); }
