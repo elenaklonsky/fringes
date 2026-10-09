@@ -1,0 +1,246 @@
+/* Anthrogen · Biological Abundance — web edition of the Onto zine.
+   Layout idea: a printed spread becomes a desktop scene, a single page becomes a phone scene.
+   Without JavaScript (or with reduced motion) everything below reads as a still, ordered page.
+   html.motion switches on the pinned, scroll-driven versions of the scenes. */
+
+@font-face { font-family: "FK Roman Standard"; src: url("../fonts/FKRomanStandard-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "FK Roman Standard"; src: url("../fonts/FKRomanStandard-Oblique.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
+
+:root {
+  --ink: #231f20;
+  --lime: #b8d13f;          /* main lime (Elena: "around #b8d13f") */
+  --lime-soft: #c8dc68;     /* the softer lime of p. 12 (approximate) */
+  --black: #110e0c;         /* warm black of the panels */
+  --paper: #ffffff;
+  --muted: rgba(35, 31, 32, .62);
+  --serif: "FK Roman Standard", "Times New Roman", Times, serif;
+
+  /* a spread is 708.66 × 498.9 pt in print: ratio 1.4205 */
+  --sw: min(calc(100vw - 32px), calc((100vh - 32px) * 1.4205));
+  --sh: calc(var(--sw) / 1.4205);
+  --fs: 17px;
+  --gutter: 20px;
+}
+@media (min-width: 900px) {
+  :root { --fs: clamp(15px, calc(var(--sw) * .0158), 21px); }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--serif); font-size: var(--fs); line-height: 1.42; font-kerning: normal; text-rendering: optimizeLegibility; }
+p, h1, h2, figure { margin: 0; }
+h1, h2 { font-weight: 400; font-size: inherit; }
+em { font-style: italic; }
+sup { font-size: .58em; line-height: 0; vertical-align: .62em; }
+img { display: block; max-width: 100%; height: auto; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+/* ---------- print grid: the reading columns of a spread ---------- */
+.frame { width: var(--sw); margin-inline: auto; position: relative; }
+.col-r { margin-left: 58%; width: 37%; }    /* right-hand page text line (65 pt) */
+.col-v { margin-left: 3.2%; width: 40%; }   /* left-hand page text line (31 pt) */
+.col-r p + p, .col-v p + p { margin-top: .7em; }
+@media (max-width: 899px) {
+  .frame { width: auto; padding-inline: var(--gutter); }
+  .col-r, .col-v { margin-left: 0; width: auto; max-width: 34em; }
+}
+
+/* ---------- navigation ---------- */
+.nav { position: fixed; z-index: 50; top: 0; left: 0; right: 0; height: 52px; pointer-events: none; opacity: 0; transition: opacity .5s; }
+.nav.is-visible { opacity: 1; }
+.nav.is-visible .nav-label, .nav.is-visible .nav-menu, .nav.is-visible .nav-progress { pointer-events: auto; }
+.nav-progress { position: absolute; top: 0; left: 0; right: 0; height: 2px; opacity: 0; transition: opacity .25s; }
+.nav-progress-bar { display: block; height: 100%; width: 100%; background: var(--lime); transform-origin: 0 50%; transform: scaleX(0); }
+.nav.is-hot .nav-progress, .nav.is-open .nav-progress, .nav:focus-within .nav-progress { opacity: 1; }
+.nav-label { position: absolute; top: calc(12px + env(safe-area-inset-top, 0px)); left: 16px; font: inherit; font-size: 13px; color: var(--muted); background: none; border: 0; padding: 4px 6px; cursor: pointer; letter-spacing: .01em; }
+.nav-label:hover, .nav.is-open .nav-label { color: var(--ink); }
+.nav-menu { position: absolute; top: calc(42px + env(safe-area-inset-top, 0px)); left: 16px; list-style: none; margin: 0; padding: 10px 14px; background: var(--paper); border: 1px solid rgba(35,31,32,.15); font-size: 15px; min-width: 240px; }
+.nav-menu li + li { margin-top: 4px; }
+.nav-menu a { text-decoration: none; display: block; padding: 3px 0; }
+.nav-menu a:hover, .nav-menu a[aria-current="true"] { text-decoration: underline; text-decoration-color: var(--lime); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.nav.on-dark .nav-label { color: rgba(255,255,255,.75); }
+
+/* ---------- scene 0–1 · cover and title page ---------- */
+.cover { position: relative; height: 100vh; height: 100svh; overflow: hidden; background: #e9f0c8; }
+.cover-art { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: max(100vw, calc(100vh * 1.4205)); height: max(100vh, calc(100vw / 1.4205)); }
+.cover-art img { width: 100%; height: 100%; object-fit: fill; max-width: none; }
+.cover-title { position: absolute; left: 65.6%; top: 86.6%; white-space: nowrap;
+  font-size: max(18px, calc(max(100vw, calc(100vh * 1.4205)) * .01834)); line-height: 1; }
+@media (max-width: 899px) {
+  .cover-art { width: max(100vw, calc(100vh * .7102)); height: max(100vh, calc(100vw / .7102)); }
+  .cover-title { left: 31.2%; font-size: max(17px, calc(max(100vw, calc(100vh * .7102)) * .0367)); }
+}
+.title-page { min-height: 100vh; min-height: 100svh; padding-top: 18vh; background: var(--paper); }
+
+/* ---------- scene 2 · section opener ---------- */
+.opener { padding-top: 18vh; min-height: 60vh; }
+.opener p + h2 { margin-top: .9em; }
+.pause { height: 50vh; }
+.pause.long { height: 100vh; }
+
+/* ---------- scenes 3–4 · proteins (static version) ---------- */
+.proteins { padding-block: 10vh; }
+.pstage .spf { width: var(--sw); margin-inline: auto; display: grid; gap: 2.2em; }
+.p5-text, .lower { margin-left: 58%; width: 37%; }
+.seed { width: 26px; justify-self: start; margin-left: 74%; background: #bfd737; }
+@media (max-width: 899px) { .seed { justify-self: center; margin-left: 0; } }
+.seed-img { width: 100%; }
+.pframe { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-inline: 3.2%; }
+.pframe .pose { width: 100%; }
+.pwords { margin-left: 3.2%; color: var(--lime); }
+.lower p + p { margin-top: .7em; }
+@media (max-width: 899px) {
+  .pstage .spf { width: auto; padding-inline: var(--gutter); }
+  .p5-text, .lower { margin-left: 0; width: auto; }
+  .pframe { grid-template-columns: 1fr 1fr; margin-inline: 0; }
+  .pwords { margin-left: 0; }
+}
+.tinker-wrap { padding-block: 30vh 0; }
+
+/* ---------- scene 5 · collage, and every other spread-based scene ---------- */
+.spread { width: var(--sw); height: var(--sh); margin-inline: auto; display: flex; position: relative; }
+.page { position: relative; width: 50%; height: 100%; }
+.page > .pos { position: absolute; left: var(--x); top: var(--y); width: var(--w); }
+.collage { padding-block: 8vh; }
+.collage .blend { mix-blend-mode: multiply; }
+@media (max-width: 899px) {
+  .spread { width: auto; height: auto; display: block; padding-inline: var(--gutter); }
+  .collage .page { width: 100%; height: auto; aspect-ratio: 354.33 / 498.9; }
+  .collage .page + .page { margin-top: 8vh; }
+}
+
+/* ---------- scene 6 · twenty amino acids (sticky lime page, no JavaScript needed) ---------- */
+.amino { display: grid; grid-template-columns: 1fr 1fr; margin-top: 10vh; }
+.amino-panel { position: sticky; top: 0; height: 100vh; background: var(--lime-soft); display: flex; align-items: center; justify-content: center; }
+.amino-panel-inner { width: min(78%, calc((100vh - 120px) / 1.41 * 1.416 / 2 + 10%)); display: grid; gap: 4vh; }
+.amino-panel-inner .diagram { width: 100%; }
+.amino-text { padding: 12vh 12% 14vh 8%; }
+.amino-text .a2 { margin-top: 70vh; }
+.amino-text .a3 { margin-top: 75vh; text-align: right; }
+.amino-text .a1 { margin-top: 2vh; }
+@media (max-width: 899px) {
+  .amino { display: block; margin-top: 6vh; }
+  .amino-panel { position: relative; height: auto; padding: 8vh var(--gutter); }
+  .amino-panel-inner { width: 100%; }
+  .amino-text { padding: 8vh var(--gutter) 6vh; }
+  .amino-text .a2 { margin-top: 40vh; }
+  .amino-text .a3 { margin-top: 45vh; }
+}
+
+/* ---------- scene 7 · counting the possibilities ---------- */
+.counting { padding-block: 10vh; }
+.counting .ptext p + p { margin-top: .7em; }
+@media (max-width: 899px) {
+  .counting .page { width: auto; height: auto; display: flex; flex-direction: column; align-items: center; }
+  .counting .page > .pos { position: static; width: var(--mw, 100%); }
+  .counting .page > .ptext { width: 100%; }
+  .counting .page > * + * { margin-top: 7vh; }
+  .counting .page + .page { margin-top: 9vh; }
+  .counting .s1 { --mw: 13vw; } .counting .s2 { --mw: 19vw; } .counting .s3 { --mw: 29vw; } .counting .s4 { --mw: 52vw; }
+  .counting .s5 { --mw: 62vw; } .counting .s6 { --mw: 100%; }
+}
+
+/* ---------- scene 8 · search: chart, then the sentence through the vine ---------- */
+.search { padding-block: 12vh 10vh; }
+.search .indent { margin-left: 16.7%; }
+.chart-pin { padding-block: 10vh; }
+.chart svg { width: 100%; height: auto; overflow: visible; }
+.waves path { fill: none; stroke-width: .45; vector-effect: non-scaling-stroke; }
+.waves .w-ink { stroke: var(--ink); }
+.waves .w-lime { stroke: var(--lime); }
+.waves .w-dot { fill: var(--lime); stroke: none; }
+.waves path { stroke-width: 1px; }
+.oneway { margin-top: 18vh; }
+@media (min-width: 900px) { .search .col-v { width: 40%; } .chart { width: 37%; margin-left: 2.3%; } }
+
+.vine-scene { padding-block: 14vh; }
+.vstage { padding-inline: var(--gutter); max-width: 34em; margin-inline: auto; display: flex; flex-direction: column; }
+.travel { display: contents; }
+.travel .h1 { order: 1; } .vstage .vine { order: 2; } .travel .h2 { order: 3; }
+.vstage .vine { width: min(46vw, 210px); margin: 5vh auto; align-self: center; }
+.travel .gap { display: none; }
+
+/* ---------- scene 9 · what else might be possible? ---------- */
+.possible { padding-block: 10vh 0; }
+.box { background: var(--lime); color: var(--paper); height: calc(var(--h) * 1); display: flex; align-items: center; justify-content: center; text-align: center; padding: 6%; }
+.page > .box { height: var(--h); }
+.question { text-align: center; }
+@media (max-width: 899px) {
+  .possible .page { width: auto; height: auto; }
+  .possible .page > .pos { position: static; width: 100%; }
+  .possible .box { aspect-ratio: 275 / 221; height: auto; }
+  .possible .page + .page { margin-top: 3vh; }
+  .possible .question { margin-top: 18vh; }
+}
+
+/* =========================================================================
+   MOTION: pinned, scroll-driven versions (added by js/main.js)
+   ========================================================================= */
+
+/* cover lifts off the title page */
+html.motion .opening { display: grid; }
+html.motion .opening > * { grid-area: 1 / 1; }
+html.motion .cover { z-index: 2; will-change: transform; }
+html.motion .title-page { height: 100vh; height: 100svh; }
+
+/* proteins: one pinned stage */
+html.motion .proteins { padding: 0; height: 100vh; height: 100svh; position: relative; overflow: hidden; }
+html.motion .pstage { position: absolute; inset: 0; }
+html.motion .pstage .spf { position: absolute; left: 50%; top: 50%; width: var(--sw); height: var(--sh); transform: translate(-50%, -50%); display: block; padding: 0; margin: 0; }
+html.motion .p5-text { position: absolute; left: 58%; top: 14%; width: 37%; margin: 0; }
+html.motion .seed { position: absolute; left: 73.8%; top: 80.8%; width: 2.4%; aspect-ratio: 1.331; margin: 0; transform-origin: 0 0; overflow: hidden; }
+html.motion .seed-img { width: 100%; height: 100%; object-fit: cover; }
+html.motion .pframe { position: absolute; left: 14%; top: 37.2%; width: 24%; aspect-ratio: 1.331; margin: 0; display: block; background: #bfd737; }
+html.motion .pframe .pose { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+html.motion .pwords { margin: 0; }
+html.motion .pw { position: absolute; white-space: nowrap; color: var(--lime); }
+html.motion .pw-bounce { right: 87.5%; top: 42%; }
+html.motion .pw-wiggle { left: 40%; top: 42%; }
+html.motion .pw-walk { right: 87.5%; top: 55%; }
+html.motion .lower { position: absolute; left: 58%; width: 37%; margin: 0; top: calc((var(--sh) - 100vh) / 2); height: 100vh; overflow: hidden; }
+html.motion .p7a, html.motion .p7b { position: absolute; top: 100%; left: 0; right: 0; }
+html.motion .tinker-wrap { padding-block: 0; height: 95vh; }
+html.motion .tinker { position: sticky; top: 46vh; margin-top: 40vh; }   /* holds for about half a screen */
+
+@media (max-width: 899px) {
+  html.motion .pstage .spf { width: 100vw; height: 100vh; height: 100svh; }
+  html.motion .p5-text { left: var(--gutter); right: var(--gutter); width: auto; top: 14vh; }
+  html.motion .seed { left: calc(50% - 5vw); top: 76vh; width: 10vw; }
+  html.motion .pframe { left: 5vw; width: 90vw; top: 7vh; }
+  html.motion .pw-bounce { left: 5vw; right: auto; top: calc(10vh + 67.6vw); }
+  html.motion .pw-wiggle { left: auto; right: 5vw; top: calc(10vh + 67.6vw + 1.6em); }
+  html.motion .pw-walk { left: 5vw; right: auto; top: calc(10vh + 67.6vw + 3.2em); }
+  html.motion .lower { left: var(--gutter); right: var(--gutter); width: auto; top: calc(9vh + 67.6vw); height: auto; bottom: 0; }
+}
+
+/* collage: pinned spread */
+html.motion .collage { padding: 0; }
+@media (min-width: 900px) {
+  html.motion .collage, html.motion .counting, html.motion .possible { height: 100vh; display: flex; align-items: center; padding: 0; }
+}
+
+/* chart pins while the waves draw (desktop) */
+@media (min-width: 900px) {
+  html.motion .chart-pin { height: 100vh; display: flex; align-items: center; padding: 0; }
+  html.motion .chart-pin .chart { width: 37%; margin-left: 2.3%; }
+}
+
+/* the sentence travels past the upright vine (desktop) */
+@media (min-width: 900px) {
+  html.motion .vine-scene { padding: 0; height: 100vh; position: relative; overflow: hidden; }
+  html.motion .vstage { position: absolute; inset: 0; max-width: none; padding: 0; display: block; }
+  html.motion .vstage .vine { position: absolute; height: 78vh; width: auto; margin: 0; left: calc(50% - 78vh * .3966 * .62); top: calc(50% - 78vh * .5); }
+  html.motion .travel { display: block; position: absolute; top: calc(50% - .7em); left: 0; white-space: nowrap; will-change: transform; }
+  html.motion .travel .h1, html.motion .travel .h2, html.motion .travel .gap { display: inline-block; }
+  html.motion .travel .gap { width: 2.4em; }
+}
+
+/* the two boxes and the question (desktop) */
+html.motion .possible .question { will-change: transform; }
+
+/* reduced motion: never hide anything */
+@media (prefers-reduced-motion: reduce) {
+  .nav { transition: none; }
+}
