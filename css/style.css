@@ -11,7 +11,8 @@
   --lime: #b8d13f;          /* main lime (Elena: "around #b8d13f") */
   --lime-soft: #c8dc68;     /* the softer lime of p. 12 (approximate) */
   --black: #110e0c;         /* warm black of the panels */
-  --paper: #ffffff;
+  --paper: #f4f3ec;         /* uncoated-stock white, slightly warm */
+  --paper-white: #ffffff;
   --muted: rgba(35, 31, 32, .62);
   --serif: "FK Roman Standard", "Times New Roman", Times, serif;
 
@@ -27,12 +28,20 @@
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
+html, body { overflow-x: clip; }   /* images travelling in from off-screen never widen the page */
 body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--serif); font-size: var(--fs); line-height: 1.42; font-kerning: normal; text-rendering: optimizeLegibility; }
 p, h1, h2, figure { margin: 0; }
 h1, h2 { font-weight: 400; font-size: inherit; }
 em { font-style: italic; }
 sup { font-size: .58em; line-height: 0; vertical-align: .62em; }
 img { display: block; max-width: 100%; height: auto; }
+
+/* paper grain over everything (fine noise, like uncoated stock); sits under the navigation */
+body::after { content: ""; position: fixed; inset: -50%; z-index: 40; pointer-events: none; opacity: var(--grain, .22); mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .14  0 0 0 0 .12  0 0 0 0 .1  0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 220px 220px; }
+/* engravings and scans printed on white paper sit into the page instead of showing white boxes */
+.collage img, .vstage .vine { mix-blend-mode: multiply; }
 a { color: inherit; }
 :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 
@@ -75,7 +84,10 @@ a { color: inherit; }
 .title-page { min-height: 100vh; min-height: 100svh; padding-top: 18vh; background: var(--paper); }
 
 /* ---------- scene 2 · section opener ---------- */
-.opener { padding-top: 18vh; min-height: 60vh; }
+.opener { position: relative; padding-top: 18vh; min-height: 100vh; min-height: 100svh; overflow: hidden; }
+.opener-texture { position: absolute; inset: 0; z-index: 0; opacity: .85; }
+.opener-texture img { width: 100%; height: 100%; object-fit: cover; max-width: none; }
+.opener > .frame { position: relative; z-index: 1; }
 .opener p + h2 { margin-top: .9em; }
 .pause { height: 50vh; }
 .pause.long { height: 100vh; }
@@ -97,7 +109,8 @@ a { color: inherit; }
   .pframe { grid-template-columns: 1fr 1fr; margin-inline: 0; }
   .pwords { margin-left: 0; }
 }
-.tinker-wrap { padding-block: 30vh 0; }
+.collage .tinker { width: var(--sw); margin: 0 auto 8vh; padding-left: 58%; }
+@media (max-width: 899px) { .collage .tinker { width: auto; padding: 0 var(--gutter); } }
 
 /* ---------- scene 5 · collage, and every other spread-based scene ---------- */
 .spread { width: var(--sw); height: var(--sh); margin-inline: auto; display: flex; position: relative; }
@@ -145,14 +158,14 @@ a { color: inherit; }
 /* ---------- scene 8 · search: chart, then the sentence through the vine ---------- */
 .search { padding-block: 12vh 10vh; }
 .search .indent { margin-left: 16.7%; }
-.chart-pin { padding-block: 10vh; }
+.chart-pin { padding-block: 5vh; }
 .chart svg { width: 100%; height: auto; overflow: visible; }
 .waves path { fill: none; stroke-width: .45; vector-effect: non-scaling-stroke; }
 .waves .w-ink { stroke: var(--ink); }
 .waves .w-lime { stroke: var(--lime); }
 .waves .w-dot { fill: var(--lime); stroke: none; }
 .waves path { stroke-width: 1px; }
-.oneway { margin-top: 18vh; }
+.oneway { margin-top: 8vh; }
 @media (min-width: 900px) { .search .col-v { width: 40%; } .chart { width: 37%; margin-left: 2.3%; } }
 
 .vine-scene { padding-block: 14vh; }
@@ -164,7 +177,7 @@ a { color: inherit; }
 
 /* ---------- scene 9 · what else might be possible? ---------- */
 .possible { padding-block: 10vh 0; }
-.box { background: var(--lime); color: var(--paper); height: calc(var(--h) * 1); display: flex; align-items: center; justify-content: center; text-align: center; padding: 6%; }
+.box { background: var(--lime); color: var(--paper-white); height: calc(var(--h) * 1); display: flex; align-items: center; justify-content: center; text-align: center; padding: 6%; }
 .page > .box { height: var(--h); }
 .question { text-align: center; }
 @media (max-width: 899px) {
@@ -199,10 +212,8 @@ html.motion .pw { position: absolute; white-space: nowrap; color: var(--lime); }
 html.motion .pw-bounce { right: 87.5%; top: 42%; }
 html.motion .pw-wiggle { left: 40%; top: 42%; }
 html.motion .pw-walk { right: 87.5%; top: 55%; }
-html.motion .lower { position: absolute; left: 58%; width: 37%; margin: 0; top: calc((var(--sh) - 100vh) / 2); height: 100vh; overflow: hidden; }
-html.motion .p7a, html.motion .p7b { position: absolute; top: 100%; left: 0; right: 0; }
-html.motion .tinker-wrap { padding-block: 0; height: 95vh; }
-html.motion .tinker { position: sticky; top: 46vh; margin-top: 40vh; }   /* holds for about half a screen */
+html.motion .lower { position: absolute; left: 58%; width: 37%; margin: 0; top: 14%; }   /* p. 7 text column; .lower-b is placed under it by script */
+
 
 @media (max-width: 899px) {
   html.motion .pstage .spf { width: 100vw; height: 100vh; height: 100svh; }
@@ -212,35 +223,104 @@ html.motion .tinker { position: sticky; top: 46vh; margin-top: 40vh; }   /* hold
   html.motion .pw-bounce { left: 5vw; right: auto; top: calc(10vh + 67.6vw); }
   html.motion .pw-wiggle { left: auto; right: 5vw; top: calc(10vh + 67.6vw + 1.6em); }
   html.motion .pw-walk { left: 5vw; right: auto; top: calc(10vh + 67.6vw + 3.2em); }
-  html.motion .lower { left: var(--gutter); right: var(--gutter); width: auto; top: calc(9vh + 67.6vw); height: auto; bottom: 0; }
+  html.motion .lower { left: var(--gutter); right: var(--gutter); width: auto; top: calc(10vh + 67.6vw); }
 }
 
-/* collage: pinned spread */
-html.motion .collage { padding: 0; }
+/* collage: the tinker line holds in the middle, the images gather around it */
+html.motion .collage { padding: 0; position: relative; }
+html.motion .collage .tinker span { background: none; padding: 0; }   /* no strip: the line sits directly among the images */
+@media (min-width: 900px) {
+  html.motion .collage .tinker { position: absolute; left: 50%; top: 47%; transform: translate(-50%, -50%); z-index: 3; width: auto; margin: 0; padding: 0; white-space: nowrap; }
+}
+@media (max-width: 899px) {
+  html.motion .collage { padding-top: 30vh; }
+  html.motion .collage .tinker { position: sticky; top: 46vh; z-index: 3; margin: 0 0 40vh; }
+}
 @media (min-width: 900px) {
   html.motion .collage, html.motion .counting, html.motion .possible { height: 100vh; display: flex; align-items: center; padding: 0; }
 }
 
+/* twenty amino acids: one held spread, the three lines arrive in place (desktop) */
+@media (min-width: 900px) {
+  html.motion .amino { height: 100vh; margin-top: 0; }
+  html.motion .amino-panel { position: relative; height: 100vh; }
+  html.motion .amino-text { position: relative; height: 100vh; padding: 0; }
+  html.motion .amino-text p { position: absolute; left: 8%; right: 12%; margin: 0; }
+  html.motion .amino-text .a1 { top: 8%; } html.motion .amino-text .a2 { top: 44%; } html.motion .amino-text .a3 { top: auto; bottom: 8%; }
+}
+
 /* chart pins while the waves draw (desktop) */
 @media (min-width: 900px) {
-  html.motion .chart-pin { height: 100vh; display: flex; align-items: center; padding: 0; }
-  html.motion .chart-pin .chart { width: 37%; margin-left: 2.3%; }
+  /* p. 14 is one held page: text near the top, the chart close underneath, as printed */
+  html.motion .search { height: 100vh; padding: 0; width: 100%; }
+  html.motion .search > * { position: absolute; margin: 0; }
+  html.motion .search .p14-text { left: calc(50% - var(--sw) / 2 + var(--sw) * .032); width: calc(var(--sw) * .4); top: calc(50% - var(--sh) / 2 + var(--sh) * .065); }
+  html.motion .search .chart-pin { left: calc(50% - var(--sw) / 2 + var(--sw) * .055); width: calc(var(--sw) * .37); top: calc(50% - var(--sh) / 2 + var(--sh) * .40); padding: 0; }
+  html.motion .search .chart-pin .chart { width: 100%; margin: 0; }
+  html.motion .search .oneway { left: calc(50% - var(--sw) / 2 + var(--sw) * .032); width: calc(var(--sw) * .4); top: calc(50% - var(--sh) / 2 + var(--sh) * .83); }
 }
 
 /* the sentence travels past the upright vine (desktop) */
 @media (min-width: 900px) {
   html.motion .vine-scene { padding: 0; height: 100vh; position: relative; overflow: hidden; }
   html.motion .vstage { position: absolute; inset: 0; max-width: none; padding: 0; display: block; }
-  html.motion .vstage .vine { position: absolute; height: 78vh; width: auto; margin: 0; left: calc(50% - 78vh * .3966 * .62); top: calc(50% - 78vh * .5); }
+  html.motion .vstage .vine { position: absolute; height: 78vh; width: auto; margin: 0; left: calc(50% - 78vh * .401 * .6925);   /* puts the tendril, where the line crosses it, at the centre */ top: calc(50% - 78vh * .5); }
   html.motion .travel { display: block; position: absolute; top: calc(50% - .7em); left: 0; white-space: nowrap; will-change: transform; }
   html.motion .travel .h1, html.motion .travel .h2, html.motion .travel .gap { display: inline-block; }
   html.motion .travel .gap { width: 2.4em; }
 }
 
 /* the two boxes and the question (desktop) */
-html.motion .possible .question { will-change: transform; }
+
 
 /* reduced motion: never hide anything */
 @media (prefers-reduced-motion: reduce) {
   .nav { transition: none; }
 }
+
+/* ---------- scene 9 → II: typed boxes, the question grows, the page goes dark ---------- */
+.dark-zone { background: var(--black); color: var(--paper-white); }
+.opener-dark { padding-top: 18vh; }
+html.motion .possible { transition: none; }
+@media (max-width: 899px) {
+  html.motion .possible { height: 100vh; height: 100svh; display: flex; align-items: center; padding: 0; }
+  html.motion .possible .spread { width: 100%; }
+  html.motion .possible .question { margin-top: 5vh; }
+  html.motion .possible .box { padding: 5%; }
+}
+.nav.on-dark .nav-label { color: rgba(255, 255, 255, .7); }
+.nav.on-dark .nav-label:hover { color: #fff; }
+
+/* pinned scenes become their own layer: give them the paper colour so images can still print into it */
+html.motion .scene { background-color: var(--paper); }
+
+/* =========================================================================
+   STAGE MODE (desktop with motion): every scene is a layer in one fixed stage.
+   Scenes dissolve into each other instead of scrolling off like pages.
+   ========================================================================= */
+.question-big { display: none; }
+.stage-track, .stage { display: contents; }
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+html.motion .possible { position: relative; }
+html.motion .question-big { display: block; position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); white-space: nowrap; margin: 0; visibility: hidden; z-index: 4; }
+@media (min-width: 900px) {
+  html.stage-mode .stage-track { display: block; position: relative; }
+  html.stage-mode .stage { display: block; position: sticky; top: 0; height: 100vh; overflow: hidden; background: var(--paper); }
+  html.stage-mode .stage > section:not(.layer) { display: contents; }
+  html.stage-mode .layer { position: absolute !important; inset: 0; margin: 0 !important; height: 100vh; visibility: hidden; background-color: transparent; }
+  html.stage-mode .opening.layer { visibility: visible; }
+  html.stage-mode .opener.layer { padding-top: 18vh; }
+  html.stage-mode .opener-dark.layer { background: var(--black); }
+  html.stage-mode .pause { display: none; }
+  html.stage-mode .amino-panel { transform-origin: 0 0; }
+}
+@media (max-width: 899px) {
+  /* each collage page fades in as a unit: give it the paper so its scans still print into it */
+  html.motion .collage .page { background-color: var(--paper); }
+}
+
+/* cover video (the moving version of the cover texture); the still stays underneath as its poster */
+.cover-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+@media (prefers-reduced-motion: reduce) { .cover-video { display: none; } }
+.cover-title .ch { display: inline; }
