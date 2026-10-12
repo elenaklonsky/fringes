@@ -428,3 +428,20 @@ html.stage-mode .counting .k1 { position: relative; }
   html.motion .counting .k1 { padding: 14vh var(--gutter); margin-inline: calc(-1 * var(--gutter)); }
 }
 /* "Bit by bit," keeps its width while its letters flicker */
+
+/* desktop: the page doesn't scroll freely; each gesture turns to the next moment */
+html.stepped, html.stepped body { overflow: hidden; height: 100%; overscroll-behavior: none; }
+
+/* the meter: a hairline at the right edge while you scroll (desktop) */
+.meter { position: fixed; right: 18px; top: calc(50% - 60px); width: 1px; height: 120px; z-index: 46; pointer-events: none;
+  background: rgba(35,31,32,.16); opacity: 0; transition: opacity .5s ease; }
+.meter.is-on { opacity: 1; }
+.meter-fill { position: absolute; inset: 0; background: var(--lime); transform-origin: 50% 0; transform: scaleY(0); transition: transform .12s linear; }
+.meter-pos { position: absolute; left: -3px; width: 7px; height: 1px; margin-top: -.5px; background: rgba(35,31,32,.55); transition: top .5s ease; }
+.meter.is-wait { background: rgba(35,31,32,.08); }
+.meter.on-dark { background: rgba(255,255,255,.18); }
+.meter.on-dark .meter-pos { background: rgba(255,255,255,.6); }
+.meter.on-dark.is-wait { background: rgba(255,255,255,.08); }
+@media (max-width: 899px), (prefers-reduced-motion: reduce) { .meter { display: none; } }
+/* the label's colour changes with the fade, not before it */
+.nav-label { transition: color .6s ease; }
