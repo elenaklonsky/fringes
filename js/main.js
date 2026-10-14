@@ -245,12 +245,12 @@
     els = gsap.utils.toArray(els); if (!els.length) return;
     gsap.set(els, { autoAlpha: 0 });
     tl.fromTo(els, { autoAlpha: 0, translate: '0px ' + (o.drift || DRIFT) + 'px' },
-      { autoAlpha: 1, translate: '0px 0px', duration: o.dur || 0.8, ease: 'power2.out', stagger: o.stagger || 0, immediateRender: false }, at || 0);
+      { autoAlpha: 1, translate: '0px 0px', duration: o.dur || 0.6, ease: 'power2.out', stagger: o.stagger || 0, immediateRender: false }, at || 0);
   }
   function fadeInT(tl, els, at, d) {
     els = gsap.utils.toArray(els); if (!els.length) return;
     gsap.set(els, { autoAlpha: 0 });
-    tl.fromTo(els, { autoAlpha: 0 }, { autoAlpha: 1, duration: d || 0.7, ease: 'power1.out', immediateRender: false }, at || 0);
+    tl.fromTo(els, { autoAlpha: 0 }, { autoAlpha: 1, duration: d || 0.55, ease: 'power1.out', immediateRender: false }, at || 0);
   }
   function fadeOutT(tl, els, at, d) {
     els = gsap.utils.toArray(els); if (!els.length) return;
@@ -306,19 +306,20 @@
 
     function pushOut(els, start, dur, depthOf) {   // PUSH: carried up and out with the scroll
       gsap.utils.toArray(els).forEach(function (el, i) {
-        var d = depthOf ? depthOf(el) : 0, k = 1 + d * 0.35;
+        var d = depthOf ? depthOf(el) : 0, k = 1 + Math.max(0, d) * 0.35;   // never less than a full exit
         X.fromTo(el, { y: 0, scale: 1 }, { y: function () { var r = restBox(el, stage); return -(r.top + r.height + 100) * k; },
           scale: 1 + d * 0.12, duration: dur * (1 - (i % 3) * 0.06), immediateRender: false }, start + (i % 3) * 0.02 * dur);
       });
     }
+    var GAP = 1;   // stage distance per moment (used for the pushes)
     function moment(name, o) {
-      var d = o.d || 0.55;
+      var d = (o.d || 0.55) * GAP;
       if (MOM.length) pos += d;
       if (o.push) pushOut(o.push, pos - d, d, o.depthOf);
       var tl = gsap.timeline({ paused: true });
       if (o.enter) o.enter(tl);
       var prev = MOM[MOM.length - 1] || { layers: [], nav: '', dark: false };
-      MOM.push({ name: name, at: pos, d: d, tl: tl, state: MOM.length ? 0 : 1, layers: o.layers || prev.layers,
+      MOM.push({ name: name, at: pos, d: d, tl: tl, state: MOM.length ? 0 : 1, layers: o.layers || prev.layers.slice(-1),
                  nav: o.nav !== undefined ? o.nav : prev.nav, dark: o.dark !== undefined ? o.dark : prev.dark, prompt: o.prompt });
     }
     function layerTo(tl, layer, from, to, at, d) {
@@ -342,7 +343,7 @@
       if (mv === 'decode') return decodeIn(tl, el, at);
       if (mv === 'lines') {
         var ls = qa('.ln', el); gsap.set(el, { autoAlpha: 0 }); gsap.set(ls, { autoAlpha: 0, y: 6 });
-        tl.set(el, { autoAlpha: 1 }, at).to(ls, { autoAlpha: 1, y: 0, duration: 0.3, stagger: 0.4 }, at);
+        tl.set(el, { autoAlpha: 1 }, at).to(ls, { autoAlpha: 1, y: 0, duration: 0.3, stagger: 0.28 }, at);
         return;
       }
       if (mv === 'swell') {   // the lime bar opens from the middle, the question appears on it
@@ -374,6 +375,7 @@
       var keepText = qa('p.keep', layer);
       if (keepText.length) tl.fromTo(keepText, { color: '#231f20' }, { color: '#ffffff', duration: 0.4, immediateRender: false }, at);
     }
+    var PACE = 0.5;   // gaps between pieces inside a moment, relative to the reading pace written into the marks
     function spread(id, o) {
       o = o || {};
       var layer = L[id], els = qa('[data-m]', layer), max = 0, inv = +layer.getAttribute('data-invert') || 0;
@@ -391,8 +393,8 @@
           enter: function (tl) {
             var off = 0;
             if (k === 1 && o.pre) { o.pre(tl); off = o.offset || 0.45; }
-            els.forEach(function (el) { if (+el.getAttribute('data-m') === k) animIn(tl, el, off + (parseFloat(el.getAttribute('data-d')) || 0)); });
-            qa('[data-out="' + k + '"]', layer).forEach(function (el) { fadeOutT(tl, el, off + (parseFloat(el.getAttribute('data-outd')) || 0)); });
+            els.forEach(function (el) { if (+el.getAttribute('data-m') === k) animIn(tl, el, off + (parseFloat(el.getAttribute('data-d')) || 0) * PACE); });
+            qa('[data-out="' + k + '"]', layer).forEach(function (el) { fadeOutT(tl, el, off + (parseFloat(el.getAttribute('data-outd')) || 0) * PACE); });
             if (k === inv) invert(tl, layer, off);
           }
         });
@@ -402,12 +404,12 @@
     /* ---------- Section I, moment by moment ---------- */
     var coverEl = q('#cover');
     moment('cover', { layers: ['opening'], nav: '', dark: false, prompt: 'scroll' });
-    moment('title', { d: 0.6, nav: 'Anthrogen', enter: function (tl) { fadeOutT(tl, coverEl, 0, 0.7); } });
+    moment('title', { d: 0.7, nav: 'Anthrogen', enter: function (tl) { fadeOutT(tl, coverEl, 0, 0.7); } });
 
     var o1 = L['opener-1'], o1text = qa('.col-r > *', o1);
     gsap.set(o1, { opacity: 0 }); gsap.set(o1text, { autoAlpha: 0 });
     moment('opener1', { d: 0.7, layers: ['opening', 'opener-1'], nav: 'I. Instruments of Abundance', dark: true, enter: function (tl) {
-      layerTo(tl, o1, 0, 1, 0, 0.7); fadeInT(tl, o1text, 0.6, 0.5);
+      layerTo(tl, o1, 0, 1, 0, 0.6); fadeInT(tl, o1text, 0.45, 0.45);
     } });
 
     var P = L.proteins, seed = q('.seed', P), frame = q('.pframe', P), p5 = q('.p5-text', P), p5f = q('.p5-follow', P);
@@ -417,9 +419,9 @@
     placeB(); ScrollTrigger.addEventListener('refreshInit', placeB);
     gsap.set([frame, bounce, wiggle, walk], { autoAlpha: 0 }); gsap.set(poses.slice(1), { autoAlpha: 0 });
     moment('p5', { d: 0.7, layers: ['opener-1', 'proteins'], dark: false, enter: function (tl) {
-      fadeOutT(tl, o1text, 0, 0.3); layerTo(tl, o1, 1, 0, 0.2, 0.6);
-      enterIn(tl, p5, 0.6); fadeInT(tl, p5f, 2.6, 0.6);      // "proteins." comes once the sentence has been read
-      fadeInT(tl, seed, 3.0, 0.6);
+      fadeOutT(tl, o1text, 0, 0.3); layerTo(tl, o1, 1, 0, 0.15, 0.5);
+      enterIn(tl, p5, 0.5); fadeInT(tl, p5f, 1.5, 0.5);      // "proteins." comes once the sentence has been read
+      fadeInT(tl, seed, 1.8, 0.5);
     } });
     moment('p7a', { layers: ['proteins'], push: [p5], enter: function (tl) {   // the seed grows into the protein
       tl.fromTo(seed, { x: 0, y: 0, scaleX: 1, scaleY: 1 }, { x: growTo(seed, frame, 'x'), y: growTo(seed, frame, 'y'), scaleX: growTo(seed, frame, 'scaleX'), scaleY: growTo(seed, frame, 'scaleY'),
@@ -454,13 +456,13 @@
             transformPerspective: 1100, transformOrigin: '50% 100%', filter: 'blur(' + (1 + (1 - d) * 2.5).toFixed(1) + 'px)' },
           { autoAlpha: 1, translate: '0px 0px', z: 0, rotationX: 0, rotationY: 0, filter: 'blur(0px)', duration: 1.1 - d * 0.15, ease: 'power3.out', immediateRender: false }, k * 0.12);
       });
-      fadeInT(tl, tinker, 2.1, 0.6);
+      fadeInT(tl, tinker, 1.4, 0.5);
     } });
 
     var A = L.amino, panel = q('.amino-panel', A), aLines = qa('.amino-text p', A);
     gsap.set(aLines, { autoAlpha: 0 }); gsap.set(panel, { autoAlpha: 0 });
     moment('amino', { d: 0.9, layers: ['collage', 'amino'], push: items.concat([tinker]), depthOf: depthOf, enter: function (tl) {
-      riseIn(tl, panel, 0, 1.0); enterIn(tl, aLines[0], 0.8); enterIn(tl, aLines[1], 1.9);
+      riseIn(tl, panel, 0, 0.9); enterIn(tl, aLines[0], 0.6); enterIn(tl, aLines[1], 1.2);
     } });
     moment('amino3', { enter: function (tl) { enterIn(tl, aLines[2], 0); } });
 
@@ -472,27 +474,26 @@
     gsap.set([kLead, kNum, k1, p11first, imagine, p11b].concat(sItems), { autoAlpha: 0 });
     gsap.set(kBlack, { opacity: 0 });
     moment('number', { d: 0.9, layers: ['amino', 'counting'], push: [panel].concat(aLines), enter: function (tl) {
-      fadeInT(tl, kNum, 0.6, 0.8);       // 2×10³⁹⁰, alone
-      fadeInT(tl, kLead, 2.2, 1.0);      // then the words of its sentence settle around it
+      fadeInT(tl, kNum, 0.4, 0.6);       // 2×10³⁹⁰, alone
+      fadeInT(tl, kLead, 1.3, 0.7);      // then the words of its sentence settle around it
     } });
     moment('atoms', { dark: true, enter: function (tl) {
       fadeOutT(tl, [kLead, kNum], 0, 0.45);
       layerTo(tl, kBlack, 0, 1, 0.15, 0.6);
       tl.set(k1, { color: '#ffffff' }, 0);
-      fadeInT(tl, k1, 0.7, 0.8);
+      fadeInT(tl, k1, 0.5, 0.6);
     } });
     moment('scales', { dark: false, enter: function (tl) {
       layerTo(tl, kBlack, 1, 0, 0, 0.6);
       tl.fromTo(k1, { color: '#ffffff' }, { color: '#231f20', duration: 0.6, immediateRender: false }, 0);
-      sItems.forEach(function (el, i) { enterIn(tl, el, 0.5 + i * 0.3, { dur: 0.7 }); });   // small to vast, one after another
+      sItems.forEach(function (el, i) { enterIn(tl, el, 0.4 + i * 0.18, { dur: 0.6 }); });   // small to vast, one after another
     } });
-    moment('imagine', { enter: function (tl) { enterIn(tl, p11first, 0); fadeInT(tl, imagine, 1.7, 0.6); } });
+    moment('imagine', { enter: function (tl) { enterIn(tl, p11first, 0); fadeInT(tl, imagine, 1.1, 0.5); } });
     moment('scale', { enter: function (tl) { enterIn(tl, p11b, 0); } });
 
     var S = L.search, paras = qa('.p14-text p', S), chart = q('.chart', S), oneway = q('.oneway', S), clip = q('.wclip-rect', S);
     gsap.set(paras.concat([chart, oneway]), { autoAlpha: 0 }); gsap.set(clip, { attr: { width: 0 } });
-    moment('p14a', { d: 0.9, layers: ['counting', 'search'], push: [kText, kText2, p11b].concat(sItems), enter: function (tl) { enterIn(tl, paras[0], 0.4); } });
-    moment('p14b', { enter: function (tl) { enterIn(tl, paras[1], 0); } });
+    moment('p14a', { d: 0.9, layers: ['counting', 'search'], push: [kText, kText2, p11b].concat(sItems), enter: function (tl) { enterIn(tl, paras[0], 0.2); enterIn(tl, paras[1], 1.0); } });
     moment('chart', { enter: function (tl) {
       enterIn(tl, chart, 0); tl.fromTo(clip, { attr: { width: 0 } }, { attr: { width: 262 }, duration: 1.2, ease: 'power1.inOut', immediateRender: false }, 0.3);
       enterIn(tl, oneway, 0.5);
@@ -509,7 +510,7 @@
     sizeGap(); ScrollTrigger.addEventListener('refreshInit', sizeGap);
     gsap.set([vine].concat(halves), { autoAlpha: 0 });
     moment('vine', { d: 0.9, layers: ['search', 'vine'], push: paras.concat([chart, oneway]), enter: function (tl) {
-      riseIn(tl, vine, 0, 1.3); fadeInT(tl, halves[0], 1.1, 0.5); fadeInT(tl, halves[1], 1.6, 0.5);
+      riseIn(tl, vine, 0, 1.1); fadeInT(tl, halves[0], 0.8, 0.5); fadeInT(tl, halves[1], 1.1, 0.5);
     } });
 
     var Q = L.possible, b1 = q('.box1', Q), b2 = q('.box2', Q), qn = q('.question', Q), qBig = q('.question-big', Q);
@@ -571,122 +572,178 @@
     var idx = {}; MOM.forEach(function (m, i) { idx[m.name] = i; });
     var TI2 = MOM[idx.opener2].at, TI3 = MOM[idx.opener3].at, TI1 = MOM[idx.opener1].at;
 
-    /* ---- connect to the scrollbar ---- */
-    function sizeTrack() { track.style.height = ((TOTAL + 1) * innerHeight) + 'px'; }
-    sizeTrack(); ScrollTrigger.addEventListener('refreshInit', sizeTrack);
-    var jumping = false, current = 0, lastVis = '';
-    var lastT = 0;
-    function sync(t, instant) {
+    /* ---- one gesture, one moment ----
+       The page doesn't scroll freely on desktop: a scroll gesture (wheel, trackpad, arrow keys, space,
+       page up/down, a swipe) turns to the next moment and the transition plays out on its own. While a
+       transition plays, further input is ignored, and the tail of a trackpad flick is ignored too, so one
+       flick is always one moment, nothing is skipped, and nothing arrives out of order. */
+    root.classList.add('stepped');
+    if (lenis) lenis.stop();
+    track.style.height = '100vh';
+    var current = 0, busy = false, lastVis = '', xTween = null;
+    function sync(t) {   // layers, label and colour of the navigation for a position on the stage
       var k = 0;
       for (var i = 0; i < MOM.length; i++) if (MOM[i].at <= t + 1e-4) k = i;
-      current = k;
-      // layers: the current moment's and the next one's
       var vis = MOM[k].layers.concat(MOM[k + 1] ? MOM[k + 1].layers : []), key = vis.join(',');
       if (key !== lastVis) { lastVis = key; LAYERS.forEach(function (el) { el.style.visibility = vis.indexOf(el.id) >= 0 ? 'visible' : 'hidden'; }); }
-      // entrances: play once the scroll is half way to a moment; run backwards when you scroll back past it
-      var want = function (m) { return t >= m.at - m.d * 0.5; }, i, j;
-      if (jumping || instant) {   // a long jump (menu, dragging the scrollbar): everything snaps to its state at once
-        for (i = 1; i < MOM.length; i++) { var w = want(MOM[i]); if (w !== (MOM[i].state === 1)) { MOM[i].tl.pause().progress(w ? 1 : 0); MOM[i].state = w ? 1 : -1; } }
-      } else {
-        for (i = MOM.length - 1; i > 0; i--) if (!want(MOM[i]) && MOM[i].state === 1) {   // backwards: latest first
-          for (j = MOM.length - 1; j > i; j--) if (MOM[j].state === -1 && MOM[j].tl.progress() > 0) MOM[j].tl.pause().progress(0);
-          MOM[i].state = -1; MOM[i].tl.timeScale(2.5).reverse();
-        }
-        for (i = 1; i < MOM.length; i++) if (want(MOM[i]) && MOM[i].state !== 1) {        // forwards: earliest first
-          // anything still playing from earlier moments finishes at once, so nothing arrives late over the new moment
-          for (j = 0; j < i; j++) if (MOM[j].state === 1 && MOM[j].tl.progress() < 1) MOM[j].tl.progress(1);
-          MOM[i].state = 1; MOM[i].tl.timeScale(1).play();
-        }
-      }
       var m = MOM[k];
       setLabel(m.nav); nav.classList.toggle('on-dark', !!m.dark);
       var visible = t > 0.3; nav.classList.toggle('is-visible', visible); if (!visible) setOpen(false);
+      bar.style.transform = 'scaleX(' + (t / TOTAL).toFixed(4) + ')';
       menu.querySelectorAll('a').forEach(function (a) {
         var id = a.getAttribute('href').slice(1);
         var on = (id === 'section-1' && t >= TI1 - 0.3 && t < TI2 - 0.3) || (id === 'section-2' && t >= TI2 - 0.3 && t < TI3 - 0.3) || (id === 'section-3' && t >= TI3 - 0.3);
         a.setAttribute('aria-current', on ? 'true' : 'false');
       });
     }
-    var st = ScrollTrigger.create({
-      trigger: track, start: 'top top', end: 'bottom bottom', scrub: 0.35, animation: X, invalidateOnRefresh: true,
-      onUpdate: function (self) {
-        var t = self.progress * TOTAL;
-        sync(t, Math.abs(t - lastT) > 1.6); lastT = t;
-        agitate(self.getVelocity(), t);
-        clearTimeout(promptTimer); hidePrompt();
-        promptTimer = setTimeout(checkPrompt, 1600);
+    function moveX(to, dur, ease) {   // carry the stage (the pushes) to a position, over time
+      if (xTween) xTween.kill();
+      var p = { t: X.time() };
+      xTween = gsap.to(p, { t: to, duration: dur, ease: ease || 'power2.inOut', onUpdate: function () { X.time(p.t); sync(p.t); grain(); } });
+    }
+    var lastGrain = 0;
+    function grain() {   // living grain: a new grain pattern every few frames while the page moves
+      var now = performance.now(); if (now - lastGrain < 60) return; lastGrain = now;
+      root.style.setProperty('--gx', Math.round(Math.random() * 220) + 'px');
+      root.style.setProperty('--gy', Math.round(Math.random() * 220) + 'px');
+    }
+    var pending = null;
+    function endOfPage(i) { var n = MOM[i + 1]; return !!n && n.at - MOM[i].at >= 0.85; }   // the next step pushes this page away
+    function settleEarlier(upTo) {   // anything still arriving from earlier moments catches up quickly (no pop)
+      for (var j = 0; j <= upTo; j++) {
+        var tl = MOM[j].tl;
+        if (tl.progress() < 1) { tl.pause(); gsap.to(tl, { progress: 1, duration: 0.3, ease: 'power1.out', overwrite: true }); }
       }
+    }
+    function go(i, fast) {
+      if (i < 0 || i >= MOM.length || i === current || busy) return;
+      hidePrompt(); clearTimeout(promptTimer);
+      if (pending) { pending.kill(); pending = null; }
+      var from = current, m = MOM[i], push = Math.abs(m.at - MOM[from].at) >= 0.85;
+      busy = true; meterWait(true);
+      if (i > from) {
+        settleEarlier(from);
+        var dur = push ? (fast ? 0.5 : 0.8) : 0.4;               // a quick flick pushes faster; reading pace stays the same
+        var start = push ? dur * 0.5 : 0.05;                     // the new page starts arriving once the old one has mostly cleared
+        moveX(m.at, dur, push ? 'power2.in' : 'power1.inOut');
+        gsap.killTweensOf(m.tl); m.tl.pause().progress(0).timeScale(1);
+        pending = gsap.delayedCall(start, function () { pending = null; m.tl.play(); });
+        if (i >= idx.p7a && i <= idx.collage) breathe();
+        current = i;
+        // you can't move on until the page has arrived (followers that come later don't hold you up)
+        var hold = endOfPage(i) ? start + Math.min(m.tl.duration(), 3) + 1.2   // the end of a page: everything lands, then it rests
+                                : start + Math.min(m.tl.duration(), m.hold || 1.1);
+        pending2(Math.max(hold, dur, 0.5));
+      } else {
+        var leaving = MOM[from];
+        gsap.killTweensOf(leaving.tl); leaving.tl.pause();
+        gsap.to(leaving.tl, { progress: 0, duration: 0.35, ease: 'power1.in' });   // going back: a quick undo, not a replay
+        moveX(m.at, push ? 0.6 : 0.35, 'power2.out');
+        current = i;
+        pending2(push ? 0.65 : 0.45);
+      }
+    }
+    var unlock = null;
+    function pending2(s) { if (unlock) unlock.kill(); unlock = gsap.delayedCall(s, done); }
+    function done() { unlock = null; busy = false; meterWait(false); promptTimer = setTimeout(checkPrompt, 1600); }
+    function jump(i) {   // straight to a moment (menu, prompt to the start): everything takes its state at once
+      if (xTween) xTween.kill(); if (pending) { pending.kill(); pending = null; } if (unlock) unlock.kill();
+      var k;
+      for (k = MOM.length - 1; k >= i; k--) { gsap.killTweensOf(MOM[k].tl); MOM[k].tl.pause().progress(0); }   // later ones first, back to nothing
+      for (k = 0; k < i; k++) { gsap.killTweensOf(MOM[k].tl); MOM[k].tl.pause().progress(1); }                // earlier ones in order, complete
+      X.time(MOM[i].at); sync(MOM[i].at); current = i;
+      MOM[i].tl.play(); busy = false; meterWait(false);
+    }
+
+    /* ---- the meter: a hairline at the right edge. It fills with lime as you scroll toward the next page,
+       stays grey while a page is still arriving, and carries a faint tick for where you are in the chapter. ---- */
+    var meter = document.createElement('div'); meter.className = 'meter'; meter.setAttribute('aria-hidden', 'true');
+    meter.innerHTML = '<span class="meter-fill"></span><span class="meter-pos"></span>';
+    document.body.appendChild(meter);
+    var meterFill = meter.firstChild, meterPos = meter.lastChild, meterHide = null;
+    var CHAPTERS = [0, idx.opener1, idx.opener2, idx.opener3, MOM.length];
+    function meterShow(fill) {
+      var c = 0; for (var n = 0; n < CHAPTERS.length - 1; n++) if (current >= CHAPTERS[n]) c = n;
+      var a = CHAPTERS[c], b = CHAPTERS[c + 1] - 1;
+      meterPos.style.top = (b > a ? (current - a) / (b - a) * 100 : 0) + '%';
+      meterFill.style.transform = 'scaleY(' + Math.max(0, Math.min(1, fill)).toFixed(3) + ')';
+      meter.classList.add('is-on'); meter.classList.toggle('on-dark', !!MOM[current].dark);
+      clearTimeout(meterHide); meterHide = setTimeout(function () { meter.classList.remove('is-on'); meterFill.style.transform = 'scaleY(0)'; }, 1200);
+    }
+    function meterWait(on) { meter.classList.toggle('is-wait', on); if (on) meterFill.style.transform = 'scaleY(0)'; }
+
+    // input: one gesture → one moment
+    var NEED = 90, NEED_PAGE = 240;   // a light brush does nothing; one click moves on within a page; turning the page takes a firmer push
+    var needNow = function (dir) { return dir > 0 && endOfPage(current) ? NEED_PAGE : NEED; };
+    var acc = 0, accTimer = null, lastWheel = 0, quietAfter = 0, gStart = 0;
+    addEventListener('wheel', function (e) {
+      if (!stageMode) return;
+      e.preventDefault();
+      var now = performance.now(), gapMs = now - lastWheel; lastWheel = now;
+      if (busy || now < quietAfter) { quietAfter = Math.max(quietAfter, now + 160); meterShow(0); return; }   // still arriving, or the tail of a flick
+      if (gapMs > 220) { acc = 0; gStart = now; }
+      var dy = e.deltaMode === 1 ? e.deltaY * 32 : e.deltaY;
+      acc += dy;
+      clearTimeout(accTimer); accTimer = setTimeout(function () { acc = 0; meterShow(0); }, 300);
+      var need = needNow(acc > 0 ? 1 : -1);
+      meterShow(Math.abs(acc) / need);
+      if (Math.abs(acc) >= need) {
+        var d = acc > 0 ? 1 : -1, fast = Math.abs(acc) / Math.max(16, now - gStart) > 2.2; acc = 0;
+        quietAfter = now + 450;
+        go(current + d, fast);
+      }
+    }, { passive: false });
+    addEventListener('keydown', function (e) {
+      if (!stageMode || e.target.closest && e.target.closest('input, textarea, [contenteditable]')) return;
+      var k = e.key;
+      if (k === 'ArrowDown' || k === 'PageDown' || (k === ' ' && !e.shiftKey)) { e.preventDefault(); if (busy) meterShow(0); go(current + 1); }
+      else if (k === 'ArrowUp' || k === 'PageUp' || (k === ' ' && e.shiftKey)) { e.preventDefault(); if (busy) meterShow(0); go(current - 1); }
+      else if (k === 'Home') { e.preventDefault(); jump(0); }
+      else if (k === 'End') { e.preventDefault(); jump(MOM.length - 1); }
     });
-    var yFor = function (time) { return st.start + (time / TOTAL) * (st.end - st.start); };
-    var tNow = function () { return (scrollY - st.start) / (st.end - st.start) * TOTAL; };
-    if (/[?&]nosnap\b/.test(location.search)) window.__stage = { moments: MOM, total: TOTAL, yFor: yFor };   // for frame-by-frame checks
+    var ty = null;
+    addEventListener('touchstart', function (e) { ty = e.touches[0].clientY; }, { passive: true });
+    addEventListener('touchmove', function (e) { if (stageMode) e.preventDefault(); }, { passive: false });
+    addEventListener('touchend', function (e) {
+      if (ty === null) return;
+      var d = ty - e.changedTouches[0].clientY; ty = null;
+      if (Math.abs(d) > 45) go(current + (d > 0 ? 1 : -1));
+    }, { passive: true });
+    addEventListener('resize', function () { X.invalidate(); X.time(MOM[current].at); sync(MOM[current].at); });
+    if (/[?&]nosnap\b/.test(location.search)) window.__stage = { moments: MOM, total: TOTAL, go: go, jump: jump, current: function () { return current; } };   // for checks
     sync(0);
 
-    /* ---- the protein breathes: its point cloud shimmers with scroll speed, and is still when you stop ---- */
+    /* ---- the protein breathes: its point cloud shimmers while the page moves, and is still when it stops ---- */
     var disp = document.querySelector('#agitate feDisplacementMap'), turb = document.querySelector('#agitate feTurbulence');
-    var agit = { s: 0 }, calm;
-    var pA = MOM[idx.p7a].at - 0.5, pB = MOM[idx.collage].at;
-    function agitate(v, t) {
-      if (t < pA || t > pB) return;
-      var target = Math.min(7, Math.abs(v) / 260);
-      gsap.to(agit, { s: target, duration: 0.25, overwrite: true, onUpdate: function () {
-        disp.setAttribute('scale', agit.s.toFixed(2)); turb.setAttribute('seed', String(Math.round(t * 40) % 50));
-        frame.classList.toggle('agitated', agit.s > 0.15);
-      } });
-      clearTimeout(calm);
-      calm = setTimeout(function () { gsap.to(agit, { s: 0, duration: 0.6, overwrite: true, onUpdate: function () {
-        disp.setAttribute('scale', agit.s.toFixed(2)); frame.classList.toggle('agitated', agit.s > 0.15); } }); }, 120);
+    var agit = { s: 0 };
+    function breathe() {
+      gsap.timeline({ onUpdate: function () {
+          disp.setAttribute('scale', agit.s.toFixed(2)); turb.setAttribute('seed', String(Math.round(performance.now() / 70) % 50));
+          frame.classList.toggle('agitated', agit.s > 0.15);
+        } })
+        .to(agit, { s: 5, duration: 0.25, ease: 'power1.out' }).to(agit, { s: 0, duration: 0.9, ease: 'power1.in' });
     }
-
-    /* ---- snap: one flick moves you to the next moment; a nudge settles back ---- */
-    var idle, dir = 1, snapping = false;
-    var noSnap = /[?&]nosnap\b/.test(location.search);
-    function settle() {
-      if (snapping || noSnap || jumping) return;
-      var t = tNow();
-      if (t <= 0.001 || t >= TOTAL - 0.001) return;
-      var k = 0; for (var i = 0; i < MOM.length; i++) if (MOM[i].at <= t) k = i;
-      var a = MOM[k].at, b = MOM[k + 1] ? MOM[k + 1].at : a;
-      if (Math.abs(t - a) < 0.012 || b === a) return;
-      var f = (t - a) / (b - a), target = dir > 0 ? (f > 0.08 ? b : a) : (f < 0.92 ? a : b);
-      snapping = true;
-      scrollToY(yFor(target), 0.55 + Math.min(1, Math.abs(target - t)) * 0.5);
-      setTimeout(function () { snapping = false; }, 1100);
-    }
-    function onMove(delta) { if (delta) dir = delta > 0 ? 1 : -1; clearTimeout(idle); idle = setTimeout(settle, 140); }
-    var lastY = scrollY;
-    if (lenis) lenis.on('scroll', function (e) { onMove(e.direction); });
-    else addEventListener('scroll', function () { onMove(scrollY - lastY); lastY = scrollY; }, { passive: true });
 
     /* ---- prompts ---- */
-    function goTo(i, dur) {
-      jumping = Math.abs(MOM[i].at - tNow()) > 1.5;
-      scrollToY(yFor(MOM[i].at), dur || 1.4);
-      setTimeout(function () {
-        if (!jumping) return;
-        jumping = false;
-        var m = MOM[i]; sync(tNow());
-        if (i) { m.tl.progress(0).timeScale(1).play(); m.state = 1; }
-      }, (dur || 1.4) * 1000 + 120);
-    }
     function checkPrompt() {
-      var t = tNow(), m = MOM[current];
-      if (!m || !m.prompt || Math.abs(t - m.at) > 0.02) return;
+      var m = MOM[current];
+      if (busy || !m || !m.prompt) return;
       var i = current;
-      showPrompt(m.prompt, m.dark, m.prompt === 'top' ? function () { goTo(0, 2.2); } : function () { goTo(i + 1, 0.9); });
+      showPrompt(m.prompt, m.dark, m.prompt === 'top' ? function () { jump(0); } : function () { go(i + 1); });
     }
     setTimeout(checkPrompt, 3000);   // the first prompt: a few seconds after load
     document.addEventListener('mousemove', function (e) {
-      if (current === 0 && tNow() < 0.02 && e.clientY > innerHeight * 0.7) checkPrompt();
+      if (current === 0 && e.clientY > innerHeight * 0.7) checkPrompt();
     }, { passive: true });
 
     // menu links jump to the chapter openers
-    jumpTo = function (id) { var name = { 'section-1': 'opener1', 'section-2': 'opener2', 'section-3': 'opener3' }[id]; if (name) goTo(idx[name], 1.8); };
+    jumpTo = function (id) { var name = { 'section-1': 'opener1', 'section-2': 'opener2', 'section-3': 'opener3' }[id]; if (name) jump(idx[name]); };
 
     return function () {
       stageMode = false; jumpTo = null;
-      root.classList.remove('stage-mode');
+      root.classList.remove('stage-mode', 'stepped');
       track.style.height = '';
+      if (lenis) lenis.start();
     };
   });
 
@@ -717,7 +774,7 @@
           var p = pts();
           tls.forEach(function (tl, i) {
             if (!i) return;   // the first moment plays as the scene comes up the screen (below)
-            var want = s.progress >= p[i] - (p[1] - p[0]) * 0.4;
+            var want = s.progress >= p[i] - (p[1] - p[0]) * 0.3;
             if (want && state[i] !== 1) { state[i] = 1; tl.timeScale(1).play(); }
             else if (!want && state[i] === 1) { state[i] = -1; tl.timeScale(2.5).reverse(); }
           });
@@ -754,7 +811,7 @@
           fadeInT(tl, words[2], 2.4, 0.3);
         },
         function (tl) { fadeOutT(tl, words, 0, 0.3); enterIn(tl, p7b, 0.3); }
-      ], 0.6);
+      ], 0.8);
     })();
 
     // collage: each image settles from its own depth as it reaches the screen; the tinker line once they're in
@@ -810,7 +867,7 @@
           tl.fromTo(Q, { backgroundColor: 'rgba(17,14,12,0)' }, { backgroundColor: 'rgba(17,14,12,1)', duration: 0.6, immediateRender: false }, 0.3)
             .call(function () { Q.classList.toggle('dark-now', tl.reversed() ? false : true); }, null, 0.5);
         }
-      ], 0.6);
+      ], 0.8);
     })();
 
     // II and III: every piece plays by itself as it reaches the screen; a follower keeps its small delay
